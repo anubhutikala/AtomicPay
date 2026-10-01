@@ -1,7 +1,18 @@
+CREATE TABLE users (
+    user_id VARCHAR(50) PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE accounts (
     account_id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
-    balance NUMERIC(12,2) NOT NULL
+    balance NUMERIC(12,2) NOT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE payment_transaction (
