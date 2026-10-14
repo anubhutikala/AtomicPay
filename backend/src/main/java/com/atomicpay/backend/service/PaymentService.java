@@ -1,14 +1,19 @@
+
 package com.atomicpay.backend.service;
 
+import com.atomicpay.backend.model.PaymentTransaction;
+import com.atomicpay.backend.repository.PaymentTransactionRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PaymentService {
 
     private final PaymentValidator validator;
+    private final PaymentTransactionRepository paymentRepository;
 
-    public PaymentService() {
+    public PaymentService(PaymentTransactionRepository paymentRepository) {
         this.validator = new PaymentValidator();
+        this.paymentRepository = paymentRepository;
     }
 
     public PaymentResult processPayment(String senderId, String receiverId, double amount) {
@@ -19,8 +24,11 @@ public class PaymentService {
             return new PaymentResult(false, error);
         }
 
-        // Database payment processing will be connected here later.
+        PaymentTransaction transaction =
+                new PaymentTransaction(senderId, receiverId, amount);
 
-        return new PaymentResult(true, "Payment request is valid");
+        paymentRepository.save(transaction);
+
+        return new PaymentResult(true, "Payment transaction saved successfully");
     }
 }
