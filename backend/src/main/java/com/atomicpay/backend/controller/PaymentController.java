@@ -4,6 +4,7 @@ import com.atomicpay.backend.dto.PaymentRequest;
 import com.atomicpay.backend.service.PaymentResult;
 import com.atomicpay.backend.service.PaymentService;
 import org.springframework.web.bind.annotation.GetMapping;
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<PaymentResult> processPayment(
-            @RequestBody PaymentRequest request) {
+            @Valid @RequestBody PaymentRequest request) {
 
         if (request == null) {
             return ResponseEntity.badRequest()
