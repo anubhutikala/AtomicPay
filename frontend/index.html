@@ -1,14 +1,100 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AtomicPay</title>
+    <title>AtomicPay | Payment Dashboard</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <header class="topbar">
+        <div>
+            <h1>AtomicPay</h1>
+            <p>Fault-Tolerant Transaction Processing</p>
+        </div>
+        <span class="project-label">Payment Dashboard</span>
+    </header>
 
-    <h1>AtomicPay</h1>
-    <p>Fault-Tolerant Transaction Processing</p>
+    <main class="container">
+        <section class="summary">
+            <div class="summary-card">
+                <p>Total Transactions</p>
+                <h2 id="totalTransactions">0</h2>
+            </div>
+            <div class="summary-card">
+                <p>Successful</p>
+                <h2 id="successfulTransactions">0</h2>
+            </div>
+            <div class="summary-card">
+                <p>Failed</p>
+                <h2 id="failedTransactions">0</h2>
+            </div>
+        </section>
 
+        <section class="panel">
+            <h2>Make a Payment</h2>
+            <p class="section-description">Enter the account details to initiate a transaction.</p>
+
+            <form id="paymentForm">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="sender">Sender Account ID</label>
+                        <input id="sender" name="sender" type="text"
+                               placeholder="e.g. ACC001" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="receiver">Receiver Account ID</label>
+                        <input id="receiver" name="receiver" type="text"
+                               placeholder="e.g. ACC002" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="amount">Amount (₹)</label>
+                        <input id="amount" name="amount" type="number"
+                               min="0.01" step="0.01" placeholder="Enter amount" required>
+                    </div>
+                </div>
+
+                <p id="formMessage" role="status"></p>
+                <button type="submit" id="paymentButton">Send Payment</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <div>
+                    <h2>Transaction History</h2>
+                    <p class="section-description">Review recent payment activity.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Sender</th>
+                            <th>Receiver</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTable">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                No transactions to display yet.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>AtomicPay · Transaction Processing System</footer>
+    <script src="../testing/payment-engine.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
