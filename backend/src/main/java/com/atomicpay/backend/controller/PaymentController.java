@@ -1,11 +1,12 @@
 package com.atomicpay.backend.controller;
 
 import java.util.List;
-import jakarta.validation.Valid;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -59,7 +60,7 @@ public class PaymentController {
     // Process a payment using the worker pool
     @PostMapping
     public ResponseEntity<?> makePayment(
-            @RequestBody PaymentRequest request) {
+            @Valid @RequestBody PaymentRequest request) {
 
         if (request == null) {
             return ResponseEntity.badRequest()
@@ -103,7 +104,4 @@ public class PaymentController {
         int recoveredCount = recoveryService.recoverStuckTransactions();
 
         return ResponseEntity.ok(
-                "Recovery completed. Transactions marked as FAILED: "
-                        + recoveredCount);
-    }
-}
+                "Recovery completed. Transactions marked as
