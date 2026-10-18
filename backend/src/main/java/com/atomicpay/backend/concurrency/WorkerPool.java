@@ -2,28 +2,38 @@ package com.atomicpay.backend.concurrency;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import org.springframework.stereotype.Component;
+
+import com.atomicpay.backend.service.PaymentResult;
+import com.atomicpay.backend.service.PaymentService;
+
+@Component
 public class WorkerPool {
 
     private final ExecutorService executor;
-    private final AccountLockManager lockManager;
+    private final PaymentService paymentService;
 
-    public WorkerPool(int numberOfWorkers) {
-        executor = Executors.newFixedThreadPool(numberOfWorkers);
-        lockManager = new AccountLockManager();
+    public WorkerPool(PaymentService paymentService) {
+        this.paymentService = paymentService;
+        this.executor = Executors.newFixedThreadPool(3);
     }
 
-    public void submitPayment(String senderId, String receiverId, double amount) {
+   public Future<PaymentResult> submitPayment(
+        String senderId,
+        String receiverId,
+        double amount) {
 
-        PaymentTask task = new PaymentTask(
+    PaymentTask task = new PaymentTask(
             senderId,
             receiverId,
             amount,
-            lockManager
-        );
+            paymentService
+    );
 
-        executor.submit(task);
-    }
+    return executor.submit(task);
+}
 
     public void shutdown() {
         executor.shutdown();

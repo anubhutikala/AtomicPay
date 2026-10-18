@@ -1,48 +1,47 @@
+const API_URL = "http://localhost:8081/api/payments";
+const HISTORY_URL = `${API_URL}/history`;
 
-/*
- * AtomicPay - Frontend behaviour
- * Standalone local simulation for frontend demonstration.
- * No real money is transferred.
- */
-
+// Get HTML elements
 const paymentForm = document.getElementById("paymentForm");
-const paymentButton = document.getElementById("paymentButton");
-const formMessage = document.getElementById("formMessage");
+const senderInput = document.getElementById("sender");
+const receiverInput = document.getElementById("receiver");
+const amountInput = document.getElementById("amount");
 const transactionTable = document.getElementById("transactionTable");
+const messageBox = document.getElementById("formMessage");
 
-const paymentEngine = new PaymentEngine({
-    ACC100: 10000,
-    ACC200: 5000,
-    ACC300: 2000
-});
+const totalTransactions = document.getElementById("totalTransactions");
+const successfulTransactions = document.getElementById("successfulTransactions");
+const failedTransactions = document.getElementById("failedTransactions");
 
-const transactions = [];
+let transactions = [];
 
-function showMessage(message, isError = false) {
-    formMessage.textContent = message;
-    formMessage.style.color = isError ? "#b42332" : "#217346";
+// Display messages
+function showMessage(message, isSuccess = true) {
+    if (!messageBox) {
+        alert(message);
+        return;
+    }
+
+    messageBox.textContent = message;
+    messageBox.style.color = isSuccess ? "green" : "red";
 }
 
-function updateSummary() {
-    document.getElementById("totalTransactions").textContent =
-        transactions.length;
+// Update dashboard counters using database records
+function updateCounters() {
+    totalTransactions.textContent = transactions.length;
 
-    document.getElementById("successfulTransactions").textContent =
-        transactions.filter(t => t.status === "SUCCESS").length;
+    successfulTransactions.textContent = transactions.filter(
+        transaction => transaction.status === "SUCCESS"
+    ).length;
 
-    document.getElementById("failedTransactions").textContent =
-        transactions.filter(t => t.status === "FAILED").length;
+    failedTransactions.textContent = transactions.filter(
+        transaction => transaction.status === "FAILED"
+    ).length;
 }
 
-function addCell(row, value) {
-    const cell = document.createElement("td");
-    cell.textContent = value ?? "—";
-    row.appendChild(cell);
-    return cell;
-}
-
+// Display transaction history
 function displayTransactions() {
-    transactionTable.replaceChildren();
+    transactionTable.innerHTML = "";
 
     if (transactions.length === 0) {
         const row = document.createElement("tr");
@@ -54,104 +53,118 @@ function displayTransactions() {
 
         row.appendChild(cell);
         transactionTable.appendChild(row);
-        updateSummary();
+        updateCounters();
         return;
     }
 
-    transactions.slice().reverse().forEach(transaction => {
+    // Show newest transactions first
+    [...transactions].reverse().forEach(transaction => {
         const row = document.createElement("tr");
 
-        addCell(row, transaction.transactionId);
-        addCell(row, transaction.senderAccountId);
-        addCell(row, transaction.receiverAccountId);
+        const values = [
+            transaction.orderId,
+            transaction.senderId,
+            transaction.receiverId,
+            `₹${Number(transaction.amount).toFixed(2)}`,
+            transaction.status
+        ];
 
-        addCell(row, `₹${Number(transaction.amount).toFixed(2)}`);
-
-        const statusCell = addCell(row, "");
-        const statusLabel = document.createElement("span");
-
-        statusLabel.classList.add("status");
-
-        if (transaction.status === "SUCCESS") {
-            statusLabel.classList.add("status-success");
-        } else {
-            statusLabel.classList.add("status-failed");
-        }
-
-        statusLabel.textContent = transaction.status;
-        statusCell.appendChild(statusLabel);
+        values.forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = value ?? "-";
+            row.appendChild(cell);
+        });
 
         transactionTable.appendChild(row);
     });
 
-    updateSummary();
+    updateCounters();
 }
 
-paymentForm.addEventListener("submit", async event => {
+// Load saved transactions from PostgreSQL through the API
+async function loadTransactionHistory() {
+    try {
+        const response = await fetch(HISTORY_URL);
+
+        if (!response.ok) {
+            throw new Error("Could not load transaction history.");
+        }
+
+        transactions = await response.json();
+        displayTransactions();
+
+    } catch (error) {
+        console.error("History loading error:", error);
+        showMessage(
+            "Unable to load transaction history. Check that the backend is running.",
+            false
+        );
+    }
+}
+
+// Process payment
+async function processPayment(event) {
     event.preventDefault();
 
-    const senderAccountId =
-        document.getElementById("sender").value.trim();
-
-    const receiverAccountId =
-        document.getElementById("receiver").value.trim();
-
-    const amount = Number(document.getElementById("amount").value);
+    const senderAccountId = senderInput.value.trim();
+    const receiverAccountId = receiverInput.value.trim();
+    const amount = Number(amountInput.value);
 
     if (!senderAccountId || !receiverAccountId) {
-        showMessage("Please enter both account IDs.", true);
+        showMessage("Please enter both account IDs.", false);
         return;
     }
 
     if (senderAccountId === receiverAccountId) {
-        showMessage("Sender and receiver accounts must be different.", true);
+        showMessage("Sender and receiver cannot be the same.", false);
         return;
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
-        showMessage("Enter an amount greater than zero.", true);
+        showMessage("Enter a valid payment amount.", false);
         return;
     }
 
-    paymentButton.disabled = true;
-    paymentButton.textContent = "Processing...";
-    showMessage("");
-
     try {
-        const result = await paymentEngine.processPayment({
-            senderAccountId,
-            receiverAccountId,
-            amount,
-            requestId: `UI-${Date.now()}-${Math.random()}`
+        showMessage("Processing payment...");
+
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                senderId: senderAccountId,
+                receiverId: receiverAccountId,
+                amount: amount
+            })
         });
 
-        transactions.push(result);
-        displayTransactions();
+        const result = await response.json();
+
+        if (!response.ok || result.success !== true) {
+            throw new Error(result.message || "Payment failed.");
+        }
 
         showMessage(
-            `Payment successful. Transaction ID: ${result.transactionId}`
+            `Payment successful! Transaction ID: ${result.transactionId}`
         );
 
         paymentForm.reset();
+
+        // Reload the actual database history
+        await loadTransactionHistory();
+
     } catch (error) {
-        console.error("Payment simulation error:", error);
-
-        const failedTransaction = {
-            transactionId: `LOCAL-${Date.now()}`,
-            senderAccountId,
-            receiverAccountId,
-            amount,
-            status: "FAILED"
-        };
-
-        transactions.push(failedTransaction);
-        displayTransactions();
-
-        showMessage(error.message || "Payment failed.", true);
-    } finally {
-        paymentButton.disabled = false;
-        paymentButton.textContent = "Send Payment";
+        console.error("Payment error:", error);
+        showMessage(error.message || "Unable to process payment.", false);
     }
-});
+}
 
-displayTransactions();
+// Attach form event listener
+if (paymentForm) {
+    paymentForm.addEventListener("submit", processPayment);
+}
+
+// Load database history when the dashboard opens
+loadTransactionHistory();

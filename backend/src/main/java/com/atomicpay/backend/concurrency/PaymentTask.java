@@ -1,75 +1,59 @@
 package com.atomicpay.backend.concurrency;
 
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Callable;
 
-public class PaymentTask implements Runnable {
+import com.atomicpay.backend.service.PaymentResult;
+import com.atomicpay.backend.service.PaymentService;
 
-    private String senderId;
-    private String receiverId;
-    private double amount;
-    private AccountLockManager lockManager;
+public class PaymentTask implements Callable<PaymentResult> {
+
+    private final String senderId;
+    private final String receiverId;
+    private final double amount;
+    private final PaymentService paymentService;
 
     public PaymentTask(
             String senderId,
             String receiverId,
             double amount,
-            AccountLockManager lockManager) {
+            PaymentService paymentService) {
 
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.amount = amount;
-        this.lockManager = lockManager;
+        this.paymentService = paymentService;
     }
 
     @Override
-    public void run() {
+    public PaymentResult call() {
 
         String workerName = Thread.currentThread().getName();
 
-        ReentrantLock senderLock = lockManager.getLock(senderId);
-        ReentrantLock receiverLock = lockManager.getLock(receiverId);
+        System.out.println(
+                workerName + " processing payment: "
+                + senderId + " -> " + receiverId
+                + " | Amount: " + amount
+        );
 
-        // Lock accounts in a fixed order
-        ReentrantLock firstLock;
-        ReentrantLock secondLock;
+        PaymentResult result = paymentService.processPayment(
+                senderId,
+                receiverId,
+                amount,
+                workerName
+        );
 
-        if (senderId.compareTo(receiverId) < 0) {
-            firstLock = senderLock;
-            secondLock = receiverLock;
+        if (result.isSuccess()) {
+            System.out.println(
+                    workerName + " payment successful. Transaction ID: "
+                    + result.getTransactionId()
+            );
         } else {
-            firstLock = receiverLock;
-            secondLock = senderLock;
+            System.out.println(
+                    workerName + " payment failed: "
+                    + result.getMessage()
+            );
         }
 
-        firstLock.lock();
-
-        try {
-            secondLock.lock();
-
-            try {
-                System.out.println(
-                    workerName + " processing payment: "
-                    + senderId + " -> "
-                    + receiverId
-                    + " | Amount: " + amount
-                );
-
-                Thread.sleep(1000);
-
-                System.out.println(
-                    workerName + " finished payment."
-                );
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                System.out.println(workerName + " was interrupted.");
-
-            } finally {
-                secondLock.unlock();
-            }
-
-        } finally {
-            firstLock.unlock();
-        }
+        return result;
     }
 }

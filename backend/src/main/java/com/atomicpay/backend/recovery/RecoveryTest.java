@@ -1,8 +1,10 @@
 package com.atomicpay.backend.recovery;
 
 public class RecoveryTest {
+
     public static void main(String[] args) {
-        RecoveryService service = new RecoveryService();
+
+        RecoveryService service = new RecoveryService(null);
 
         RecoveryRecord record = new RecoveryRecord("ORD001");
 
@@ -16,6 +18,7 @@ public class RecoveryTest {
 
         service.recover(record);
         System.out.println("After Recovery: " + record.getState());
+
         System.out.println("Message: " + record.getMessage());
     }
 }
