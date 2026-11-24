@@ -1,7 +1,6 @@
 package com.atomicpay.backend.service;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,92 +29,109 @@ public class PaymentService {
 
     @Transactional
     public PaymentResult processPayment(
+            String orderId,
             String senderId,
             String receiverId,
             double amount,
             String workerName) {
 
-        // Validate the payment request
-        String error = validator.validate(senderId, receiverId, amount);
-
-        if (error != null) {
-            return new PaymentResult(false, error);
+        if (orderId == null || orderId.trim().isEmpty()) {
+            return new PaymentResult(false, "Order ID is required");
         }
 
-        if (!Double.isFinite(amount)) {
-            return new PaymentResult(
-                    false, "Payment amount must be finite");
+        String error = validator.validate(senderId, receiverId, amount);
+
+        if (error != null || !Double.isFinite(amount)) {
+            return new PaymentResult(false,
+                    error != null ? error : "Invalid payment amount");
         }
 
         BigDecimal paymentAmount = BigDecimal.valueOf(amount);
 
+        // Lock the transaction to prevent duplicate processing
+        PaymentTransaction transaction =
+                transactionRepository.findByIdForUpdate(orderId).orElse(null);
+
+        if (transaction == null) {
+            return new PaymentResult(false, "Payment request not found");
+        }
+
+        boolean samePayment =
+                transaction.getSenderId().equals(senderId)
+                && transaction.getReceiverId().equals(receiverId)
+                && transaction.getAmount().compareTo(paymentAmount) == 0;
+
+        if (!samePayment) {
+            return new PaymentResult(false,
+                    "Order ID already used for a different payment");
+        }
+
+        if (transaction.getStatus() == TransactionState.SUCCESS) {
+            return new PaymentResult(true,
+                    "Payment already processed", orderId);
+        }
+
+        if (transaction.getStatus() != TransactionState.PENDING) {
+            return new PaymentResult(false,
+                    "Payment is not in PENDING state");
+        }
+
+        transaction.setStatus(TransactionState.PROCESSING);
+        transaction.setWorkerId(workerName);
+        transactionRepository.saveAndFlush(transaction);
+
         Account sender;
         Account receiver;
 
-        // Acquire account locks in a consistent order
-        // to reduce the possibility of deadlocks.
+        // Lock accounts in consistent order
         if (senderId.compareTo(receiverId) < 0) {
-
-            sender = accountRepository
-                    .findByAccountIdForUpdate(senderId)
+            sender = accountRepository.findByAccountIdForUpdate(senderId)
                     .orElse(null);
-
-            receiver = accountRepository
-                    .findByAccountIdForUpdate(receiverId)
+            receiver = accountRepository.findByAccountIdForUpdate(receiverId)
                     .orElse(null);
-
         } else {
-
-            receiver = accountRepository
-                    .findByAccountIdForUpdate(receiverId)
+            receiver = accountRepository.findByAccountIdForUpdate(receiverId)
                     .orElse(null);
-
-            sender = accountRepository
-                    .findByAccountIdForUpdate(senderId)
+            sender = accountRepository.findByAccountIdForUpdate(senderId)
                     .orElse(null);
         }
 
-        // Check that both accounts exist
         if (sender == null) {
-            return new PaymentResult(false, "Sender account not found");
+            return markFailed(transaction, "Sender account not found");
         }
 
         if (receiver == null) {
-            return new PaymentResult(false, "Receiver account not found");
+            return markFailed(transaction, "Receiver account not found");
         }
 
-        // Check available balance
         if (sender.getBalance().compareTo(paymentAmount) < 0) {
-            return new PaymentResult(false, "Insufficient balance");
+            return markFailed(transaction, "Insufficient balance");
         }
 
-        // Create a transaction record
-        PaymentTransaction transaction = new PaymentTransaction();
-
-        transaction.setOrderId("ORD-" + UUID.randomUUID());
-        transaction.setSenderId(senderId);
-        transaction.setReceiverId(receiverId);
-        transaction.setAmount(paymentAmount);
-        transaction.setPaymentMethod("INTERNAL");
-        transaction.setStatus(TransactionState.PROCESSING);
-        transaction.setWorkerId(workerName);
-
-        transactionRepository.saveAndFlush(transaction);
-
-        // Update account balances
+        // Transfer money
         sender.setBalance(sender.getBalance().subtract(paymentAmount));
         receiver.setBalance(receiver.getBalance().add(paymentAmount));
 
         accountRepository.save(sender);
         accountRepository.save(receiver);
 
-        // Mark the transaction as successful
         transaction.setStatus(TransactionState.SUCCESS);
+        transaction.setFailureReason(null);
+
         transactionRepository.save(transaction);
 
-        return new PaymentResult(
-                true,
-                "Payment completed successfully",
-                transaction.getOrderId());
+        return new PaymentResult(true,
+                "Payment completed successfully", orderId);
+    }
+
+    private PaymentResult markFailed(
+            PaymentTransaction transaction, String reason) {
+
+        transaction.setStatus(TransactionState.FAILED);
+        transaction.setFailureReason(reason);
+
+        transactionRepository.save(transaction);
+
+        return new PaymentResult(false, reason);
     }
 }

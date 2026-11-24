@@ -19,13 +19,13 @@ public class ConcurrencyTest {
             WorkerPool pool = context.getBean(WorkerPool.class);
 
             Future<PaymentResult> p1 =
-                    pool.submitPayment("A001", "A002", 500);
+                    pool.submitPayment("TEST-ORD-001", "A001", "A002", 500);
 
             Future<PaymentResult> p2 =
-                    pool.submitPayment("A001", "A003", 700);
+                    pool.submitPayment("TEST-ORD-002", "A001", "A003", 700);
 
             Future<PaymentResult> p3 =
-                    pool.submitPayment("A004", "A005", 300);
+                    pool.submitPayment("TEST-ORD-003", "A004", "A005", 300);
 
             System.out.println("\n--- CONCURRENCY TEST RESULTS ---");
 

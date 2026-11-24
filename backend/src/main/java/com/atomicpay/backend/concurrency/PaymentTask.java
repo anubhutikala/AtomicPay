@@ -7,17 +7,20 @@ import com.atomicpay.backend.service.PaymentService;
 
 public class PaymentTask implements Callable<PaymentResult> {
 
+    private final String orderId;
     private final String senderId;
     private final String receiverId;
     private final double amount;
     private final PaymentService paymentService;
 
     public PaymentTask(
+            String orderId,
             String senderId,
             String receiverId,
             double amount,
             PaymentService paymentService) {
 
+        this.orderId = orderId;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.amount = amount;
@@ -36,6 +39,7 @@ public class PaymentTask implements Callable<PaymentResult> {
         );
 
         PaymentResult result = paymentService.processPayment(
+                orderId,
                 senderId,
                 receiverId,
                 amount,

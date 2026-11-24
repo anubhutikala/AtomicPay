@@ -1,11 +1,21 @@
 package com.atomicpay.backend.dto;
 
 public class PaymentRequest {
+
+    private String orderId;
     private String senderId;
     private String receiverId;
     private double amount;
 
     public PaymentRequest() {}
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
+    }
 
     public String getSenderId() {
         return senderId;
