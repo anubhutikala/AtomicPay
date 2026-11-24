@@ -1,100 +1,96 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AtomicPay | Payment Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101a35" />
+  <title>AtomicPay — Transaction workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <header class="topbar">
-        <div>
-            <h1>AtomicPay</h1>
-            <p>Fault-Tolerant Transaction Processing</p>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main id="authView" class="auth-layout">
+    <section class="auth-brand">
+      <div class="brand-lockup"><span class="brand-mark">A</span><span>atomic<span class="brand-light">pay</span></span></div>
+      <div class="brand-copy">
+        <span class="eyebrow">FAULT-TOLERANT TRANSACTION PROCESSING</span>
+        <h1>Move money.<br><span>With confidence.</span></h1>
+        <p>A clear view of every transaction, built around reliability, consistency and control.</p>
+      </div>
+      <div class="brand-foot"><span class="pulse-dot"></span> Transaction workspace <span class="brand-foot-right">SECURE ACCESS</span></div>
+      <div class="orb orb-one"></div><div class="orb orb-two"></div>
+    </section>
+    <section class="auth-panel-wrap">
+      <div class="auth-panel">
+        <div class="mobile-brand brand-lockup"><span class="brand-mark">A</span><span>atomic<span class="brand-light">pay</span></span></div>
+        <div class="auth-heading"><span class="eyebrow" id="authEyebrow">WELCOME BACK</span><h2 id="authTitle">Sign in to AtomicPay</h2><p id="authSubtitle">Choose your workspace and enter your credentials.</p></div>
+        <div class="role-switch" role="tablist" aria-label="Account type">
+          <button class="role-tab active" data-role="USER" role="tab" aria-selected="true"> <span>◉</span> User</button>
+          <button class="role-tab" data-role="ADMIN" role="tab" aria-selected="false"><span>▣</span> Administrator</button>
         </div>
-        <span class="project-label">Payment Dashboard</span>
-    </header>
+        <form id="loginForm" class="auth-form">
+          <label>Email address<div class="input-wrap"><span>✉</span><input id="loginEmail" type="text" placeholder="you@example.com" autocomplete="username" required /></div></label>
+          <label>Password<div class="input-wrap"><span>⌑</span><input id="loginPassword" type="password" placeholder="Enter your password" autocomplete="current-password" required /><button type="button" class="password-toggle" id="togglePassword" aria-label="Show password">Show</button></div></label>
+          <div class="auth-meta"><span id="authHint">Your account credentials are encrypted in transit.</span><a href="#" id="forgotLink">Forgot password?</a></div>
+          <p class="form-error" id="authError" aria-live="polite"></p>
+          <button class="btn btn-primary btn-full" id="loginButton" type="submit">Sign in <span>→</span></button>
+        </form>
+        <div class="signup-line" id="signupLine">New to AtomicPay? <button type="button" id="showRegister">Create an account</button></div>
+        <form id="registerForm" class="auth-form hidden">
+          <label>Full name<div class="input-wrap"><span>♙</span><input id="registerName" type="text" placeholder="Your full name" autocomplete="name" required /></div></label>
+          <label>Email address<div class="input-wrap"><span>✉</span><input id="registerEmail" type="text" placeholder="you@example.com" autocomplete="email" required /></div></label>
+          <label>Password<div class="input-wrap"><span>⌑</span><input id="registerPassword" type="password" minlength="8" placeholder="At least 8 characters" autocomplete="new-password" required /></div></label>
+          <p class="form-error" id="registerError" aria-live="polite"></p>
+          <button class="btn btn-primary btn-full" type="submit" id="registerButton">Create account <span>→</span></button>
+          <div class="signup-line">Already registered? <button type="button" id="showLogin">Sign in</button></div>
+        </form>
+        <p class="auth-legal">By continuing, you agree to AtomicPay's <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
+      </div>
+    </section>
+  </main>
 
-    <main class="container">
-        <section class="summary">
-            <div class="summary-card">
-                <p>Total Transactions</p>
-                <h2 id="totalTransactions">0</h2>
-            </div>
-            <div class="summary-card">
-                <p>Successful</p>
-                <h2 id="successfulTransactions">0</h2>
-            </div>
-            <div class="summary-card">
-                <p>Failed</p>
-                <h2 id="failedTransactions">0</h2>
-            </div>
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand brand-lockup"><span class="brand-mark">A</span><span>atomic<span class="brand-light">pay</span></span></div>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="side-nav">
+        <button class="nav-item active" data-page="overview"><span class="nav-icon">▦</span> Overview</button>
+        <button class="nav-item" data-page="transactions"><span class="nav-icon">⇄</span> Transactions</button>
+        <button class="nav-item user-only" data-page="send"><span class="nav-icon">↗</span> Send money</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="help-card"><span class="help-icon">?</span><div><b>Need a hand?</b><small>Contact your workspace admin.</small></div></div><button class="nav-item logout-button" id="logoutButton"><span class="nav-icon">↪</span> Sign out</button></div>
+    </aside>
+    <section class="main-area">
+      <header class="topbar"><button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button><div class="breadcrumb">Workspace <span>/</span> <b id="breadcrumbPage">Overview</b></div><div class="topbar-right"><span class="environment"><i></i> LIVE WORKSPACE</span><div class="top-divider"></div><div class="profile"><div class="avatar" id="avatarInitial">U</div><div class="profile-copy"><b id="profileName">Account</b><small id="profileRole">User account</small></div><span class="chevron">⌄</span></div></div></header>
+      <div class="content-area">
+        <section id="overviewPage" class="page active">
+          <div class="page-heading"><div><span class="eyebrow" id="welcomeEyebrow">YOUR FINANCIAL OVERVIEW</span><h1 id="welcomeTitle">Good to see you.</h1><p id="welcomeDescription">Here’s what’s happening with your transactions.</p></div><div class="date-chip"><span>◷</span><span id="todayLabel">Today</span></div></div>
+          <div class="stat-grid" id="statsGrid">
+            <article class="stat-card"><div class="stat-top"><span>Total transactions</span><span class="stat-icon blue">⇄</span></div><strong id="statTotal">—</strong><small>All recorded transactions</small></article>
+            <article class="stat-card"><div class="stat-top"><span>Successful</span><span class="stat-icon green">✓</span></div><strong id="statSuccess">—</strong><small>Completed successfully</small></article>
+            <article class="stat-card"><div class="stat-top"><span>Failed</span><span class="stat-icon red">×</span></div><strong id="statFailed">—</strong><small>Transactions not completed</small></article>
+            <article class="stat-card"><div class="stat-top"><span>Total volume</span><span class="stat-icon violet">₹</span></div><strong id="statVolume">—</strong><small>Based on loaded records</small></article>
+          </div>
+          <section class="panel quick-panel user-only"><div class="panel-heading"><div><span class="eyebrow">QUICK ACTION</span><h2>Make a transfer</h2><p>Send money to another AtomicPay account.</p></div><span class="panel-symbol">↗</span></div><form id="quickPaymentForm" class="payment-grid"><label>Sender ID<div class="input-wrap"><span>◎</span><input id="quickSender" readonly placeholder="Your account ID" /></div></label><label>Receiver ID<div class="input-wrap"><span>◎</span><input id="quickReceiver" placeholder="Enter receiver account ID" required /></div></label><label>Amount<div class="input-wrap amount-input"><span>₹</span><input id="quickAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required /></div></label><button class="btn btn-primary payment-submit" type="submit" id="quickPayButton">Send payment <span>→</span></button></form><p class="inline-message" id="quickPaymentMessage" aria-live="polite"></p></section>
+          <section class="panel recent-panel"><div class="panel-heading row-heading"><div><span class="eyebrow">ACTIVITY</span><h2 id="recentTitle">Recent transactions</h2><p id="recentDescription">Your latest payment activity.</p></div><button class="btn btn-outline" data-goto="transactions">View all <span>→</span></button></div><div class="table-scroll"><table><thead><tr><th>TRANSACTION</th><th>SENDER</th><th>RECEIVER</th><th>DATE & TIME</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody id="recentTable"><tr><td colspan="6" class="empty-cell">Sign in to load transaction activity.</td></tr></tbody></table></div></section>
         </section>
-
-        <section class="panel">
-            <h2>Make a Payment</h2>
-            <p class="section-description">Enter the account details to initiate a transaction.</p>
-
-            <form id="paymentForm">
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="sender">Sender Account ID</label>
-                        <input id="sender" name="sender" type="text"
-                               placeholder="e.g. ACC001" required>
-                    </div>
-
-                    <div class="field">
-                        <label for="receiver">Receiver Account ID</label>
-                        <input id="receiver" name="receiver" type="text"
-                               placeholder="e.g. ACC002" required>
-                    </div>
-
-                    <div class="field">
-                        <label for="amount">Amount (₹)</label>
-                        <input id="amount" name="amount" type="number"
-                               min="0.01" step="0.01" placeholder="Enter amount" required>
-                    </div>
-                </div>
-
-                <p id="formMessage" role="status"></p>
-                <button type="submit" id="paymentButton">Send Payment</button>
-            </form>
+        <section id="transactionsPage" class="page">
+          <div class="page-heading"><div><span class="eyebrow">TRANSACTION RECORDS</span><h1 id="transactionsHeading">Transactions</h1><p id="transactionsSubheading">Search and review your payment activity.</p></div><button class="btn btn-outline" id="refreshButton">↻ Refresh</button></div>
+          <section class="panel filters-panel"><div class="filter-heading"><div><h2>Find a transaction</h2><p>Refine the records using the filters below.</p></div><button class="text-button" id="resetFilters">Reset filters</button></div>
+            <div class="filter-grid"><label class="wide-filter">Search transaction ID<div class="input-wrap"><span>⌕</span><input id="filterId" placeholder="e.g. TXN-1024" /></div></label><label class="admin-only">Sender ID<div class="input-wrap"><input id="filterSender" placeholder="Sender account" /></div></label><label class="admin-only">Receiver ID<div class="input-wrap"><input id="filterReceiver" placeholder="Receiver account" /></div></label><label>From date<input id="filterFrom" type="date" /></label><label>To date<input id="filterTo" type="date" /></label><label>From time<input id="filterTimeFrom" type="time" /></label><label>To time<input id="filterTimeTo" type="time" /></label><label>Status<select id="filterStatus"><option value="">All statuses</option><option value="SUCCESS">Success</option><option value="FAILED">Failed</option><option value="PENDING">Pending</option></select></label></div>
+            <div class="filter-footer"><span id="resultCount">0 transactions</span><button class="btn btn-primary btn-small" id="applyFilters">Apply filters</button></div>
+          </section>
+          <section class="panel transactions-panel"><div class="panel-heading row-heading"><div><h2>All transactions</h2><p id="tableScope">Transactions associated with your account.</p></div><span class="record-count" id="recordCount">0 records</span></div><div class="table-scroll"><table><thead><tr><th>TRANSACTION ID</th><th>SENDER ID</th><th>RECEIVER ID</th><th>DATE</th><th>TIME</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody id="allTransactionsTable"><tr><td colspan="7" class="empty-cell">No transactions to display.</td></tr></tbody></table></div></section>
         </section>
-
-        <section class="panel">
-            <div class="section-heading">
-                <div>
-                    <h2>Transaction History</h2>
-                    <p class="section-description">Review recent payment activity.</p>
-                </div>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Transaction ID</th>
-                            <th>Sender</th>
-                            <th>Receiver</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionTable">
-                        <tr>
-                            <td colspan="5" class="empty-state">
-                                No transactions to display yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <footer>AtomicPay · Transaction Processing System</footer>
-    <script src="../testing/payment-engine.js"></script>
-<script src="script.js"></script>
+        <section id="sendPage" class="page"><div class="page-heading"><div><span class="eyebrow">PAYMENT TRANSFER</span><h1>Send money</h1><p>Make a transfer to another AtomicPay account.</p></div></div><section class="panel send-panel"><div class="send-intro"><span class="send-big-icon">↗</span><div><h2>New payment</h2><p>Enter the recipient details and amount below.</p></div></div><form id="paymentForm" class="send-form"><label>Sender ID<input id="sender" readonly placeholder="Your account ID" /></label><label>Receiver ID<input id="receiver" placeholder="Enter receiver account ID" required /></label><label>Amount (₹)<input id="amount" type="number" min="0.01" step="0.01" placeholder="Enter amount" required /></label><p class="form-error" id="paymentError" aria-live="polite"></p><button class="btn btn-primary" type="submit" id="paymentButton">Review and send <span>→</span></button></form></section></section>
+        <footer class="app-footer">© 2026 AtomicPay <span>Built for reliable transaction processing</span></footer>
+      </div>
+    </section>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
