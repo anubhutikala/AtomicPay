@@ -40,6 +40,9 @@ public class SecurityConfig {
                                  "/api/payments/recovery")
                     .hasRole("ADMIN")
 
+                .requestMatchers("/api/payments/simulate/**")
+                    .hasRole("ADMIN")
+
                 .requestMatchers("/api/payments/**")
                     .hasAnyRole("USER", "ADMIN")
 
