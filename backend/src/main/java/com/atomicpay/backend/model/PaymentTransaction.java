@@ -36,8 +36,8 @@ public class PaymentTransaction {
     @Column(nullable = false)
     private TransactionState status;
 
-    @Column(name = "worker_id")
-    private String workerId;
+   @Column(name = "worker_id", length = 150)
+private String workerId;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;

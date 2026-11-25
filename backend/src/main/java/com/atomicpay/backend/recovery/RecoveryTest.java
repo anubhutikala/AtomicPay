@@ -4,7 +4,7 @@ public class RecoveryTest {
 
     public static void main(String[] args) {
 
-        RecoveryService service = new RecoveryService(null);
+        RecoveryService service = new RecoveryService(null, null);
 
         RecoveryRecord record = new RecoveryRecord("ORD001");
 

@@ -1,19 +1,30 @@
 package com.atomicpay.backend.controller;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.atomicpay.backend.dto.PaymentRequest;
+import com.atomicpay.backend.model.Account;
+import com.atomicpay.backend.model.AppUser;
 import com.atomicpay.backend.model.PaymentMessage;
 import com.atomicpay.backend.model.PaymentTransaction;
 import com.atomicpay.backend.recovery.RecoveryService;
 import com.atomicpay.backend.recovery.TransactionState;
+import com.atomicpay.backend.repository.AccountRepository;
+import com.atomicpay.backend.repository.AppUserRepository;
 import com.atomicpay.backend.repository.PaymentTransactionRepository;
 import com.atomicpay.backend.service.PaymentProducer;
 import com.atomicpay.backend.service.WorkerMonitor;
@@ -30,19 +41,26 @@ public class PaymentController {
     private final PaymentTransactionRepository transactionRepository;
     private final RecoveryService recoveryService;
     private final WorkerMonitor workerMonitor;
+    private final AppUserRepository userRepository;
+    private final AccountRepository accountRepository;
 
     public PaymentController(
             PaymentProducer paymentProducer,
             PaymentTransactionRepository transactionRepository,
             RecoveryService recoveryService,
-            WorkerMonitor workerMonitor) {
+            WorkerMonitor workerMonitor,
+            AppUserRepository userRepository,
+            AccountRepository accountRepository) {
 
         this.paymentProducer = paymentProducer;
         this.transactionRepository = transactionRepository;
         this.recoveryService = recoveryService;
         this.workerMonitor = workerMonitor;
+        this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
     }
 
+    // Get payment status
     @GetMapping("/status/{orderId}")
     public ResponseEntity<?> getPaymentStatus(
             @PathVariable String orderId) {
@@ -52,16 +70,53 @@ public class PaymentController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // Test payment API
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Payment API is working!");
     }
 
+    // Get complete transaction history (ADMIN use only)
     @GetMapping("/history")
     public ResponseEntity<List<PaymentTransaction>> getTransactionHistory() {
         return ResponseEntity.ok(transactionRepository.findAll());
     }
 
+    // Get logged-in user's transaction history
+    @GetMapping("/my-history")
+    public ResponseEntity<?> getMyHistory(Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Not authenticated"));
+        }
+
+        AppUser user = userRepository.findByUsername(authentication.getName())
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("message", "User not found"));
+        }
+
+        Account account = accountRepository.findByUserId(user.getUserId())
+                .orElse(null);
+
+        if (account == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<PaymentTransaction> history =
+                transactionRepository.findAll().stream()
+                        .filter(t ->
+                                account.getAccountId().equals(t.getSenderId())
+                                || account.getAccountId().equals(t.getReceiverId()))
+                        .collect(Collectors.toList());
+
+        return ResponseEntity.ok(history);
+    }
+
+    // Worker monitoring statistics
     @GetMapping("/workers/stats")
     public ResponseEntity<Map<String, Object>> getWorkerStats() {
 
@@ -86,6 +141,7 @@ public class PaymentController {
         return ResponseEntity.ok(stats);
     }
 
+    // Submit payment
     @PostMapping
     public ResponseEntity<?> makePayment(
             @RequestBody PaymentRequest request) {
@@ -138,6 +194,7 @@ public class PaymentController {
                 }
 
                 // Existing PENDING request: republish it
+
             } else {
 
                 // Save PENDING transaction before publishing
@@ -175,14 +232,13 @@ public class PaymentController {
         }
     }
 
-    @PostMapping("/recovery")
-    public ResponseEntity<String> recoverTransactions() {
+    // Recover stuck transactions
+   @PostMapping("/recovery")
+public ResponseEntity<String> recoverTransactions() {
 
-        int recoveredCount =
-                recoveryService.recoverStuckTransactions();
+    int count = recoveryService.retryPendingTransactions();
 
-        return ResponseEntity.ok(
-                "Recovery completed. Transactions marked as FAILED: "
-                        + recoveredCount);
-    }
+    return ResponseEntity.ok(
+            "Recovery completed. Retry requests submitted: " + count);
+}
 }

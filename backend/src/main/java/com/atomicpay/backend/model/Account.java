@@ -46,4 +46,15 @@ public class Account {
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
+    public void setAccountId(String accountId) {
+    this.accountId = accountId;
+}
+
+public void setUserId(String userId) {
+    this.userId = userId;
+}
+
+public void setName(String name) {
+    this.name = name;
+}
 }

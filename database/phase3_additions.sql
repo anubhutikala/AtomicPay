@@ -81,3 +81,177 @@ ALTER TABLE payment_transaction DISABLE TRIGGER trg_txn_updated;
 UPDATE payment_transaction SET updated_at = CURRENT_TIMESTAMP - INTERVAL '10 minutes'
  WHERE order_id = 'ORD005' AND status = 'PROCESSING';
 ALTER TABLE payment_transaction ENABLE TRIGGER trg_txn_updated;
+
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'payment_transaction'
+ORDER BY ordinal_position;
+
+
+SELECT * FROM scheduled_payment;
+
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'payment_transaction'
+  AND column_name IN ('updated_at', 'retry_count', 'failure_reason');
+
+
+  SELECT account_id, balance
+FROM accounts
+ORDER BY account_id;
+
+SELECT order_id, sender_id, receiver_id, amount, status
+FROM payment_transaction
+ORDER BY created_at DESC
+LIMIT 1;
+
+SELECT order_id
+FROM payment_transaction
+WHERE sender_id = 'A001'
+  AND receiver_id = 'A002'
+ORDER BY created_at DESC
+LIMIT 1;
+
+
+SELECT 'ORDER ID: ' || order_id AS complete_order_id
+FROM payment_transaction
+WHERE sender_id = 'A001'
+  AND receiver_id = 'A002'
+ORDER BY created_at DESC
+LIMIT 1;
+
+SELECT
+    SUBSTRING(order_id, 1, 18) AS part1,
+    SUBSTRING(order_id, 19, 18) AS part2
+FROM payment_transaction
+WHERE sender_id = 'A001'
+  AND receiver_id = 'A002'
+ORDER BY created_at DESC
+LIMIT 1;
+
+
+SELECT
+    SUBSTRING(order_id, 1, 6) AS p1,
+    SUBSTRING(order_id, 7, 6) AS p2,
+    SUBSTRING(order_id, 13, 6) AS p3,
+    SUBSTRING(order_id, 19, 6) AS p4,
+    SUBSTRING(order_id, 25, 6) AS p5,
+    SUBSTRING(order_id, 31, 6) AS p6
+FROM payment_transaction
+WHERE sender_id = 'A001'
+  AND receiver_id = 'A002'
+ORDER BY created_at DESC
+LIMIT 1;
+
+
+
+SELECT account_id, balance
+FROM accounts
+WHERE account_id IN ('A001', 'A002')
+ORDER BY account_id;
+
+
+SELECT order_id, COUNT(*) AS transaction_count
+FROM payment_transaction
+WHERE order_id = '2ac9a44d-52e7-4d51-85e6-235959c9b2d0'
+GROUP BY order_id;
+
+
+CREATE OR REPLACE FUNCTION simulate_payment_failure()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.account_id = 'A002' THEN
+        RAISE EXCEPTION 'Simulated database failure for rollback testing';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER test_payment_rollback
+BEFORE UPDATE ON accounts
+FOR EACH ROW
+EXECUTE FUNCTION simulate_payment_failure();
+
+DROP TRIGGER IF EXISTS test_payment_rollback ON accounts;
+
+DROP FUNCTION IF EXISTS simulate_payment_failure();
+
+
+SELECT account_id, balance
+FROM accounts
+WHERE account_id IN ('A001', 'A002')
+ORDER BY account_id;
+
+SELECT order_id, sender_id, receiver_id, amount, status
+FROM payment_transaction
+WHERE sender_id = 'A001'
+AND receiver_id = 'A002'
+AND amount = 100;
+
+SELECT account_id, balance
+FROM accounts
+WHERE account_id IN ('A001', 'A002')
+ORDER BY account_id;
+
+
+
+
+SELECT tgname
+FROM pg_trigger
+WHERE tgrelid = 'accounts'::regclass
+AND NOT tgisinternal;
+
+
+SELECT account_id, balance
+FROM accounts
+ORDER BY account_id;
+
+SELECT * FROM users LIMIT 5;
+
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+
+
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name ILIKE '%scheduled%'
+ORDER BY table_name, ordinal_position;
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name = 'users'
+ORDER BY ordinal_position;
+
+SELECT user_id, username, role
+FROM users;
+
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name = 'accounts'
+ORDER BY ordinal_position;
+
+SELECT * FROM accounts;
+
+
+SELECT order_id, sender_id, receiver_id, amount, status
+FROM payment_transaction
+ORDER BY order_id DESC
+LIMIT 100;
+
+SELECT account_id, balance
+FROM accounts
+ORDER BY account_id;
+
+UPDATE accounts
+SET balance = 10000.00
+WHERE account_id = 'A007';

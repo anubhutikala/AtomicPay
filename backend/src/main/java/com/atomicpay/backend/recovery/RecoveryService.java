@@ -5,43 +5,45 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.atomicpay.backend.model.PaymentMessage;
 import com.atomicpay.backend.model.PaymentTransaction;
 import com.atomicpay.backend.repository.PaymentTransactionRepository;
+import com.atomicpay.backend.service.PaymentProducer;
 
 @Service
 public class RecoveryService {
 
     private final PaymentTransactionRepository transactionRepository;
+    private final PaymentProducer paymentProducer;
 
-    public RecoveryService(PaymentTransactionRepository transactionRepository) {
+    public RecoveryService(
+            PaymentTransactionRepository transactionRepository,
+            PaymentProducer paymentProducer) {
+
         this.transactionRepository = transactionRepository;
+        this.paymentProducer = paymentProducer;
     }
 
-    // Mark a transaction as PROCESSING
     public void markProcessing(RecoveryRecord record) {
         record.setState(TransactionState.PROCESSING);
         record.setMessage("Transaction is being processed");
     }
 
-    // Mark a transaction as SUCCESS
     public void markSuccess(RecoveryRecord record) {
         record.setState(TransactionState.SUCCESS);
         record.setMessage("Transaction completed successfully");
     }
 
-    // Mark a transaction as FAILED
     public void markFailed(RecoveryRecord record, String reason) {
         record.setState(TransactionState.FAILED);
         record.setMessage(reason);
     }
 
-    // Mark a transaction as INCOMPLETE
     public void markIncomplete(RecoveryRecord record, String reason) {
         record.setState(TransactionState.INCOMPLETE);
         record.setMessage(reason);
     }
 
-    // Recover an in-memory incomplete transaction
     public void recover(RecoveryRecord record) {
         if (record.getState() == TransactionState.INCOMPLETE) {
             record.setState(TransactionState.FAILED);
@@ -52,7 +54,6 @@ public class RecoveryService {
         }
     }
 
-    // Find transactions that may need recovery
     @Transactional(readOnly = true)
     public List<PaymentTransaction> findIncompleteTransactions() {
         return transactionRepository.findAll().stream()
@@ -62,17 +63,57 @@ public class RecoveryService {
                 .toList();
     }
 
-    // Recover manually inserted or otherwise verified stuck transactions
+    // Retry all pending transactions through RabbitMQ
+    public int retryPendingTransactions() {
+
+        List<PaymentTransaction> pending =
+                transactionRepository.findAll().stream()
+                        .filter(transaction ->
+                                transaction.getStatus() == TransactionState.PENDING)
+                        .toList();
+
+        int count = 0;
+
+        for (PaymentTransaction transaction : pending) {
+
+            try {
+                PaymentMessage message = new PaymentMessage(
+                        transaction.getOrderId(),
+                        transaction.getSenderId(),
+                        transaction.getReceiverId(),
+                        transaction.getAmount().doubleValue()
+                );
+
+                paymentProducer.sendPayment(message);
+                count++;
+
+            } catch (Exception e) {
+                System.err.println(
+                        "Could not retry transaction "
+                        + transaction.getOrderId() + ": " + e.getMessage());
+            }
+        }
+
+        return count;
+    }
+
     @Transactional
     public int recoverStuckTransactions() {
-        List<PaymentTransaction> transactions = findIncompleteTransactions();
+
+        List<PaymentTransaction> transactions =
+                findIncompleteTransactions();
+
         int recoveredCount = 0;
 
         for (PaymentTransaction transaction : transactions) {
+
             if (transaction.getStatus() == TransactionState.PROCESSING
                     || transaction.getStatus() == TransactionState.INCOMPLETE) {
 
                 transaction.setStatus(TransactionState.FAILED);
+                transaction.setFailureReason(
+                        "Transaction requires manual recovery");
+
                 transactionRepository.save(transaction);
                 recoveredCount++;
             }

@@ -46,8 +46,16 @@ function setAuthRole(role) {
 function showLoginForm() { state.registering = false; $("loginForm").classList.remove("hidden"); $("registerForm").classList.add("hidden"); $("signupLine").classList.toggle("hidden", state.role === "ADMIN"); }
 function showRegisterForm() { state.registering = true; $("loginForm").classList.add("hidden"); $("registerForm").classList.remove("hidden"); $("signupLine").classList.add("hidden"); }
 function normalizeUser(payload) {
-  const data = payload?.data || payload;
-  return { token: data?.token || data?.accessToken, role: String(data?.role || state.role).toUpperCase(), id: data?.userId || data?.accountId || data?.id, name: data?.name || data?.fullName || data?.email || "AtomicPay user", email: data?.email || "" };
+    const data = payload?.data || payload;
+
+    return {
+        token: data?.token || data?.accessToken,
+        role: String(data?.role || state.role).toUpperCase(),
+        id: data?.accountId || data?.id || "",
+        userId: data?.userId || "",
+        name: data?.name || data?.fullName || data?.email || "AtomicPay user",
+        email: data?.email || ""
+    };
 }
 async function handleLogin(event) {
   event.preventDefault(); const button = $("loginButton"); const error = $("authError"); error.textContent = "";
@@ -163,7 +171,12 @@ async function submitPayment(event, formKind) {
   if (amount > 100000000) { message.textContent = "Please enter a valid amount."; return; }
   setBusy(button, true);
   try {
-    const result = await request(ENDPOINTS.payment, { method: "POST", body: JSON.stringify({ senderId, receiverId, amount }) });
+    const result = await request(ENDPOINTS.payment, { method: "POST", body: JSON.stringify({
+    orderId: crypto.randomUUID(),
+    senderId,
+    receiverId,
+    amount
+}) });
     if (result?.success === false) throw new Error(result.message || "Payment could not be completed.");
     message.style.color = "var(--green)"; message.textContent = `Payment request submitted${result?.transactionId ? ` · Transaction ${result.transactionId}` : ""}.`;
     receiverEl.value = ""; amountEl.value = ""; await loadTransactions(); toast("Payment request processed.");

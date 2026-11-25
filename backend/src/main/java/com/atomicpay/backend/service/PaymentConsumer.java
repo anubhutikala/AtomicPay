@@ -44,13 +44,15 @@ public class PaymentConsumer {
             );
 
             if (result.isSuccess()) {
+
                 workerMonitor.paymentSucceeded();
 
                 System.out.println(
                         workerName + " completed payment: "
                         + message.getOrderId());
+
             } else {
-                // Permanent business failure: acknowledge without retry
+
                 workerMonitor.paymentFailed();
 
                 System.out.println(
@@ -62,14 +64,26 @@ public class PaymentConsumer {
 
             workerMonitor.paymentFailed();
 
-            System.out.println(
-                    workerName + " encountered an error: "
-                    + e.getMessage());
+            System.err.println(
+                    "\n========== PAYMENT PROCESSING ERROR ==========");
 
-            // Unexpected errors are passed to RabbitMQ retry handling
+            System.err.println("Worker: " + workerName);
+            System.err.println("Order ID: " + message.getOrderId());
+            System.err.println("Sender: " + message.getSenderId());
+            System.err.println("Receiver: " + message.getReceiverId());
+            System.err.println("Amount: " + message.getAmount());
+
+            System.err.println("\nException details:");
+            e.printStackTrace();
+
+            System.err.println(
+                    "================================================\n");
+
+            // Allow RabbitMQ retry and dead-letter handling.
             throw e;
 
         } finally {
+
             workerMonitor.paymentFinished();
         }
     }

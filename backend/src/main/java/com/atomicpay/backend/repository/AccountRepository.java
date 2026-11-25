@@ -18,4 +18,7 @@ public interface AccountRepository extends JpaRepository<Account, String> {
     Optional<Account> findByAccountIdForUpdate(
             @Param("accountId") String accountId
     );
+    Optional<Account> findByUserId(String userId);
+
+Optional<Account> findTopByOrderByAccountIdDesc();
 }
